@@ -1,65 +1,76 @@
-const board = document.getElementById('board')
-const message = document.getElementById('message')
-const resetButton = document.getElementById('reset')
+const board = document.getElementById('board');
+const message = document.getElementById('message');
+const resetButton = document.getElementById('reset');
 
-let isTimeUp = false
-let timerStarted = false // Flag to track if timer is started
+let isTimeUp = false;
+let timerStarted = false; // Flag to track if timer is started
+let queenCount = 0; // Track the number of queens placed on the board
 
 // Create the board
 function createBoard() {
-    board.innerHTML = ''
+    board.innerHTML = '';
     for (let row = 0; row < 8; row++) {
         for (let col = 0; col < 8; col++) {
-            const square = document.createElement('div')
-            square.classList.add('square')
+            const square = document.createElement('div');
+            square.classList.add('square');
             if ((row + col) % 2 === 0) {
-                square.classList.add('light')
+                square.classList.add('light');
             } else {
-                square.classList.add('dark')
+                square.classList.add('dark');
             }
-            square.dataset.row = row
-            square.dataset.col = col
-            square.addEventListener('click', toggleQueen)
-            board.appendChild(square)
+            square.dataset.row = row;
+            square.dataset.col = col;
+            square.addEventListener('click', toggleQueen);
+            board.appendChild(square);
         }
     }
 }
 
 // Toggle queen
 function toggleQueen(e) {
-    if (isTimeUp) return
-    const square = e.currentTarget
+    if (isTimeUp) return; // Prevent actions after time is up
+    const square = e.currentTarget;
 
-    if (square.textContent === '♕') {
-        square.textContent = ''
-    } else {
-        square.textContent = '♕'
+    // Only allow placing a queen if there are fewer than 8 queens on the board
+    if (queenCount >= 8 && square.textContent !== '♕') {
+        message.textContent = 'You can place only 8 queens!';
+        message.style.color = '#e74c3c';
+        return;
     }
 
-    checkBoard()
+    // Toggle the queen on the square
+    if (square.textContent === '♕') {
+        square.textContent = '';
+        queenCount--;  // Decrease count if the queen is removed
+    } else {
+        square.textContent = '♕';
+        queenCount++;  // Increase count if a queen is added
+    }
+
+    checkBoard();
 
     // Start the timer when the first queen is placed
     if (!timerStarted && square.textContent === '♕') {
-        timerStarted = true
-        startTimer()
+        timerStarted = true;
+        startTimer();
     }
 }
 
 // Board status
 function checkBoard() {
-    const squares = document.querySelectorAll('.square')
-    const queens = []
+    const squares = document.querySelectorAll('.square');
+    const queens = [];
 
     squares.forEach(square => {
         if (square.textContent === '♕') {
             queens.push({
                 row: parseInt(square.dataset.row),
                 col: parseInt(square.dataset.col)
-            })
+            });
         }
-    })
+    });
 
-    let conflict = false
+    let conflict = false;
 
     for (let i = 0; i < queens.length; i++) {
         for (let j = i + 1; j < queens.length; j++) {
@@ -68,53 +79,48 @@ function checkBoard() {
                 queens[i].col === queens[j].col ||
                 Math.abs(queens[i].row - queens[j].row) === Math.abs(queens[i].col - queens[j].col)
             ) {
-                conflict = true
-                break
+                conflict = true;
+                break;
             }
         }
-        if (conflict) break
+        if (conflict) break;
     }
 
     // Update message
     if (conflict) {
-        message.textContent = 'Conflict detected!'
-        message.style.color = '#e74c3c'
+        message.textContent = 'Conflict detected!';
+        message.style.color = '#e74c3c';
     } else {
-        if (queens.length === 8) {
-            message.textContent = 'Puzzle solved!'
-            message.style.color = '#27ae60'
-            puzzleSolved()
+        if (queenCount === 8) {
+            message.textContent = 'Puzzle solved!';
+            message.style.color = '#27ae60';
+            alert('Congratulations! You have solved the puzzle!');
+            clearInterval(timerInterval); // Stop the timer when puzzle is solved
         } else {
-            message.textContent = 'Place 8 queens'
-            message.style.color = '#333'
+            message.textContent = 'Place 8 queens';
+            message.style.color = '#333';
         }
     }
 }
 
-function puzzleSolved() {
-    clearInterval(timerInterval)
-    isTimeUp = true;
-    message.textContent = "Congratulations! You have solved the puzzle!";
-    message.style.color = '#27ae60';
-}
-
 // Reset the board
 function resetBoard() {
-    const squares = document.querySelectorAll('.square')
-    squares.forEach(square => square.textContent = '')
-    message.textContent = 'Place 8 queens'
-    message.style.color = '#333'
-    isTimeUp = false
-    timerStarted = false // Reset the timer flag
-    renderTimerUI()
-    startTimer()
+    const squares = document.querySelectorAll('.square');
+    squares.forEach(square => square.textContent = '');
+    message.textContent = 'Place 8 queens';
+    message.style.color = '#333';
+    isTimeUp = false;
+    timerStarted = false; // Reset the timer flag
+    queenCount = 0; // Reset queen count
+    renderTimerUI();
+    startTimer();
 }
 
 // Initialize the board
-createBoard()
+createBoard();
 
 // Reset button
-resetButton.addEventListener('click', resetBoard)
+resetButton.addEventListener('click', resetBoard);
 
 // =========================
 // TIMER LOGIC
