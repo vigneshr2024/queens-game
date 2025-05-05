@@ -2,6 +2,9 @@ const board = document.getElementById('board')
 const message = document.getElementById('message')
 const resetButton = document.getElementById('reset')
 
+let isTimeUp = false
+let timerStarted = false // Flag to track if timer is started
+
 // Create the board
 function createBoard() {
     board.innerHTML = ''
@@ -24,6 +27,7 @@ function createBoard() {
 
 // Toggle queen
 function toggleQueen(e) {
+    if (isTimeUp) return
     const square = e.currentTarget
 
     if (square.textContent === '♕') {
@@ -31,7 +35,14 @@ function toggleQueen(e) {
     } else {
         square.textContent = '♕'
     }
+
     checkBoard()
+
+    // Start the timer when the first queen is placed
+    if (!timerStarted && square.textContent === '♕') {
+        timerStarted = true
+        startTimer()
+    }
 }
 
 // Board status
@@ -72,11 +83,19 @@ function checkBoard() {
         if (queens.length === 8) {
             message.textContent = 'Puzzle solved!'
             message.style.color = '#27ae60'
+            puzzleSolved()
         } else {
             message.textContent = 'Place 8 queens'
             message.style.color = '#333'
         }
     }
+}
+
+function puzzleSolved() {
+    clearInterval(timerInterval)
+    isTimeUp = true;
+    message.textContent = "Congratulations! You have solved the puzzle!";
+    message.style.color = '#27ae60';
 }
 
 // Reset the board
@@ -85,6 +104,10 @@ function resetBoard() {
     squares.forEach(square => square.textContent = '')
     message.textContent = 'Place 8 queens'
     message.style.color = '#333'
+    isTimeUp = false
+    timerStarted = false // Reset the timer flag
+    renderTimerUI()
+    startTimer()
 }
 
 // Initialize the board
@@ -92,3 +115,125 @@ createBoard()
 
 // Reset button
 resetButton.addEventListener('click', resetBoard)
+
+// =========================
+// TIMER LOGIC
+// =========================
+
+const FULL_DASH_ARRAY = 283;
+const WARNING_THRESHOLD = 10;
+const ALERT_THRESHOLD = 5;
+
+const COLOR_CODES = {
+    info: {
+        color: "green"
+    },
+    warning: {
+        color: "orange",
+        threshold: WARNING_THRESHOLD
+    },
+    alert: {
+        color: "red",
+        threshold: ALERT_THRESHOLD
+    }
+};
+
+const TIME_LIMIT = 90;
+let timePassed = 0;
+let timeLeft = TIME_LIMIT;
+let timerInterval = null;
+let remainingPathColor = COLOR_CODES.info.color;
+
+function renderTimerUI() {
+    document.getElementById("timer").innerHTML = `
+    <div class="base-timer">
+      <svg class="base-timer__svg" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+        <g class="base-timer__circle">
+          <circle class="base-timer__path-elapsed" cx="50" cy="50" r="45"></circle>
+          <path
+            id="base-timer-path-remaining"
+            stroke-dasharray="283"
+            class="base-timer__path-remaining ${remainingPathColor}"
+            d="
+              M 50, 50
+              m -45, 0
+              a 45,45 0 1,0 90,0
+              a 45,45 0 1,0 -90,0
+            "
+          ></path>
+        </g>
+      </svg>
+      <span id="base-timer-label" class="base-timer__label">${formatTime(timeLeft)}</span>
+    </div>
+    `;
+}
+
+function onTimesUp() {
+    clearInterval(timerInterval);
+    isTimeUp = true;
+    message.textContent = "Time's up!";
+    message.style.color = '#e74c3c';
+}
+
+function startTimer() {
+    if (timerInterval) clearInterval(timerInterval); // Clear previous interval
+    timePassed = 0;
+    timeLeft = TIME_LIMIT;
+    isTimeUp = false;
+    setRemainingPathColor(timeLeft);
+    setCircleDasharray();
+    document.getElementById("base-timer-label").textContent = formatTime(timeLeft);
+    timerInterval = setInterval(() => {
+        timePassed += 1;
+        timeLeft = TIME_LIMIT - timePassed;
+        document.getElementById("base-timer-label").textContent = formatTime(timeLeft);
+        setCircleDasharray();
+        setRemainingPathColor(timeLeft);
+
+        if (timeLeft <= 0) {
+            onTimesUp();
+        }
+    }, 1000);
+}
+
+function formatTime(time) {
+    const minutes = Math.floor(time / 60);
+    let seconds = time % 60;
+
+    if (seconds < 10) {
+        seconds = `0${seconds}`;
+    }
+
+    return `${minutes}:${seconds}`;
+}
+
+function setRemainingPathColor(timeLeft) {
+    const { alert, warning, info } = COLOR_CODES;
+    const path = document.getElementById("base-timer-path-remaining");
+    path.classList.remove(info.color, warning.color, alert.color);
+
+    if (timeLeft <= alert.threshold) {
+        path.classList.add(alert.color);
+    } else if (timeLeft <= warning.threshold) {
+        path.classList.add(warning.color);
+    } else {
+        path.classList.add(info.color);
+    }
+}
+
+function calculateTimeFraction() {
+    const rawTimeFraction = timeLeft / TIME_LIMIT;
+    return rawTimeFraction - (1 / TIME_LIMIT) * (1 - rawTimeFraction);
+}
+
+function setCircleDasharray() {
+    const circleDasharray = `${(
+        calculateTimeFraction() * FULL_DASH_ARRAY
+    ).toFixed(0)} 283`;
+    document
+        .getElementById("base-timer-path-remaining")
+        .setAttribute("stroke-dasharray", circleDasharray);
+}
+
+// Start on load
+renderTimerUI();
