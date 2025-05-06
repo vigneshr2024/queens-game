@@ -94,14 +94,43 @@ function checkBoard() {
         if (queenCount === 8) {
             message.textContent = 'Puzzle solved!';
             message.style.color = '#27ae60';
-            alert('Congratulations! You have solved the puzzle!');
-            clearInterval(timerInterval); // Stop the timer when puzzle is solved
+            puzzleSolved();
         } else {
             message.textContent = 'Place 8 queens';
             message.style.color = '#333';
         }
     }
 }
+
+function puzzleSolved() {
+    clearInterval(timerInterval);
+    isTimeUp = true;
+    message.textContent = "🎉 Congratulations! You have solved the puzzle! 🎉";
+    message.style.color = '#27ae60';
+
+    let duration = 2000;
+    let end = Date.now() + duration;
+
+    (function frame() {
+        confetti({
+            particleCount: 5,
+            angle: 60,
+            spread: 55,
+            origin: { x: 0 }
+        });
+        confetti({
+            particleCount: 5,
+            angle: 120,
+            spread: 55,
+            origin: { x: 1 }
+        });
+
+        if (Date.now() < end) {
+            requestAnimationFrame(frame);
+        }
+    })();
+}
+
 
 // Reset the board
 function resetBoard() {
